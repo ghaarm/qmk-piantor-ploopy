@@ -71,6 +71,11 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
+        send_string("REMOVED_1");
+    } else if (leader_sequence_one_key(KC_T)) {
+        send_string("REMOVED_3");
+    } else if (leader_sequence_one_key(KC_G)) {
+        send_string("REMOVED_2");
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
@@ -502,8 +507,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_LOWER] = LAYOUT_split_3x6_3(
         KC_GRV,       LSFT(KC_1), LSFT(KC_2), LSFT(KC_3),  LSFT(KC_4),  LSFT(KC_5),                                       LSFT(KC_6),         LSFT(KC_7),         LSFT(KC_8),     LSFT(KC_9), LSFT(KC_0), LSFT(KC_MINS),
-        _______,      KC_1,       KC_2,       KC_3,        KC_4,        KC_5,                                             KC_NO,              KC_NO,              KC_NO,          KC_NO,      KC_SCLN,    KC_EQL,
-        _______,      KC_6,       KC_7,       KC_8,        KC_9,        KC_0,                                             LSFT(LGUI(KC_8)),   LSFT(LGUI(KC_9)),   LALT(KC_8),     LALT(KC_9), KC_NO,      KC_PIPE,
+        _______,      KC_1,       KC_2,       KC_3,        KC_4,        KC_5,                                             DE_LABK,        DE_BSLS,        DE_LCBR,    DE_RCBR, UC(0x2260), DE_ACUT,
+        _______,      KC_6,       KC_7,       KC_8,        KC_9,        KC_0,                                             DE_RABK,        DE_PIPE,        DE_LBRC,    DE_RBRC, DE_QUOT,    DE_QUOT,
                                                         _______,     _______,    _______,                    _______, _______, _______
     ),
     [_UPPER] = LAYOUT_split_3x6_3(
