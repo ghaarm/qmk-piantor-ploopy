@@ -317,7 +317,7 @@ const key_override_t *key_overrides[] = {
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   if (record->event.pressed) {
-    if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && !ctl_ent_registered) {
+    if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && keycode != HYPR_TAB && !ctl_ent_registered) {
       register_code(KC_LCTL);
       ctl_ent_registered = true;
     } else if (ctl_spc_pressed && keycode != CTL_ENT && keycode != CTL_SPC && !ctl_spc_registered) {
@@ -328,8 +328,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 
   switch (keycode) {
     case HYPR_TAB:
-      if (record->event.pressed && (alt_tab_active || (get_mods() & MOD_MASK_GUI))) {
+      if (record->event.pressed && (ctl_ent_pressed || alt_tab_active || (get_mods() & MOD_MASK_GUI))) {
         del_mods(MOD_MASK_GUI);
+        ctl_ent_search_sent = true;
         register_code(KC_LALT);
         tap_code(KC_TAB);
         alt_tab_active = true;
