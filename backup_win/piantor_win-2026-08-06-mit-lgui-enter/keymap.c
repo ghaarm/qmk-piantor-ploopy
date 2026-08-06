@@ -18,7 +18,7 @@ enum layers {
 };
 
 enum custom_keycodes {
-    CTL_ENT = SAFE_RANGE,
+    GUI_ENT = SAFE_RANGE,
     CTL_SPC,
 };
 
@@ -45,7 +45,7 @@ const uint16_t PROGMEM email_combo[] = {KC_Q, KC_W, COMBO_END};
 #define LOWER_DEL LT(_LOWER, KC_DEL)
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
 
-const uint16_t PROGMEM clear_line_combo[] = {CTL_ENT, UPPER_BSPC, COMBO_END};
+const uint16_t PROGMEM clear_line_combo[] = {GUI_ENT, UPPER_BSPC, COMBO_END};
 const uint16_t PROGMEM xc_leader_combo[] = { KC_X, KC_C, COMBO_END };
 
 combo_t key_combos[] = {
@@ -71,6 +71,11 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
+        send_string("haarmezer");
+    } else if (leader_sequence_one_key(KC_T)) {
+        send_string("sinus123123");
+    } else if (leader_sequence_one_key(KC_G)) {
+        send_string("REMOVED_2");
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
@@ -116,15 +121,48 @@ bool delete_line_to_start(bool activated, void *context) {
 }
 
 static bool alt_tab_active = false;
-static bool ctl_ent_pressed = false;
-static bool ctl_ent_registered = false;
-static bool ctl_ent_search_sent = false;
-static bool ctl_ent_ctrl_enter_sent = false;
-static uint16_t ctl_ent_timer = 0;
+static bool gui_ent_pressed = false;
+static bool gui_ent_registered = false;
+static bool gui_ent_search_sent = false;
+static bool gui_ent_ctrl_enter_sent = false;
+static uint16_t gui_ent_timer = 0;
 static bool ctl_spc_pressed = false;
 static bool ctl_spc_registered = false;
 static bool ctl_spc_search_sent = false;
 static uint16_t ctl_spc_timer = 0;
+
+static void tap_ctrl_shortcut(uint16_t keycode) {
+    tap_code16(C(keycode));
+}
+
+static bool handle_gui_ent_chord(uint16_t keycode) {
+    switch (keycode) {
+        case KC_A:
+        case KC_C:
+        case KC_D:
+        case KC_F:
+        case KC_N:
+        case KC_S:
+        case KC_V:
+        case KC_X:
+        case KC_Z:
+            tap_ctrl_shortcut(keycode);
+            gui_ent_search_sent = true;
+            return false;
+        case KC_W:
+            tap_code16(A(KC_F4));
+            gui_ent_search_sent = true;
+            return false;
+        case KC_BSPC:
+            delete_line_to_start(true, NULL);
+            gui_ent_search_sent = true;
+            return false;
+        default:
+            register_code(KC_LGUI);
+            gui_ent_registered = true;
+            return true;
+    }
+}
 
 static void tap_windows_search(void) {
     tap_code16(G(KC_S));
@@ -141,23 +179,49 @@ static void tap_ctrl_backspace_without_alt(void) {
     set_oneshot_mods(oneshot_mods);
 }
 
-static void tap_backspace_without_shift(void) {
-    uint8_t mods = get_mods();
-    uint8_t oneshot_mods = get_oneshot_mods();
-
-    del_mods(MOD_MASK_SHIFT);
-    del_oneshot_mods(MOD_MASK_SHIFT);
-    tap_code(KC_BSPC);
-    set_mods(mods);
-    set_oneshot_mods(oneshot_mods);
-}
-
 static void release_alt_tab(void) {
     if (alt_tab_active) {
         unregister_code(KC_LALT);
         alt_tab_active = false;
     }
 }
+
+// Key Override für Windows LGUI
+const key_override_t lgui_a_to_lctl_a = ko_make_basic(MOD_MASK_GUI, KC_A, C(KC_A));
+const key_override_t lgui_c_to_lctl_c = ko_make_basic(MOD_MASK_GUI, KC_C, C(KC_C));
+const key_override_t lgui_f_to_lctl_f = ko_make_basic(MOD_MASK_GUI, KC_F, C(KC_F));
+const key_override_t lgui_p_to_lctl_p = ko_make_basic(MOD_MASK_GUI, KC_P, C(KC_P));
+const key_override_t lgui_s_to_lctl_s = ko_make_basic(MOD_MASK_GUI, KC_S, C(KC_S));
+const key_override_t lgui_v_to_lctl_v = ko_make_basic(MOD_MASK_GUI, KC_V, C(KC_V));
+const key_override_t lgui_x_to_lctl_x = ko_make_basic(MOD_MASK_GUI, KC_X, C(KC_X));
+const key_override_t lgui_z_to_lctl_z = ko_make_basic(MOD_MASK_GUI, KC_Z, C(KC_Z));
+
+const key_override_t lgui_n_to_lctl_n = {
+    .trigger_mods      = MOD_MASK_GUI,
+    .layers            = ~0,
+    .negative_mod_mask = MOD_MASK_SHIFT,
+    .suppressed_mods   = MOD_MASK_GUI,
+    .options           = ko_options_default,
+    .trigger           = KC_N,
+    .replacement       = C(KC_N),
+    .custom_action     = NULL,
+    .context           = NULL,
+    .enabled           = NULL,
+};
+
+const key_override_t lgui_shift_n_to_lctl_shift_n = {
+    .trigger_mods      = MOD_MASK_GUI | MOD_MASK_SHIFT,
+    .layers            = ~0,
+    .negative_mod_mask = 0,
+    .suppressed_mods   = MOD_MASK_GUI | MOD_MASK_SHIFT,
+    .options           = ko_options_default,
+    .trigger           = KC_N,
+    .replacement       = C(S(KC_N)),
+    .custom_action     = NULL,
+    .context           = NULL,
+    .enabled           = NULL,
+};
+
 
 // Key Override für Windows Navigation
 const key_override_t lalt_shift_f_to_lgui_up = {
@@ -293,6 +357,17 @@ const key_override_t *key_overrides[] = {
     // Key Override für Windows
     // &hyper_del_to_ctrl_shift_enter,
 
+    &lgui_a_to_lctl_a,
+    &lgui_c_to_lctl_c,
+    &lgui_f_to_lctl_f,
+    &lgui_p_to_lctl_p,
+    &lgui_s_to_lctl_s,
+    &lgui_v_to_lctl_v,
+    &lgui_x_to_lctl_x,
+    &lgui_z_to_lctl_z,
+    &lgui_shift_n_to_lctl_shift_n,
+    &lgui_n_to_lctl_n,
+
     // Key Override für Windows Navigation
     &lalt_shift_f_to_lgui_up,
     &lalt_shift_f_to_lgui_right,
@@ -317,10 +392,9 @@ const key_override_t *key_overrides[] = {
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   if (record->event.pressed) {
-    if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && !ctl_ent_registered) {
-      register_code(KC_LCTL);
-      ctl_ent_registered = true;
-    } else if (ctl_spc_pressed && keycode != CTL_ENT && keycode != CTL_SPC && !ctl_spc_registered) {
+    if (gui_ent_pressed && keycode != GUI_ENT && keycode != CTL_SPC && !gui_ent_registered) {
+      return handle_gui_ent_chord(keycode);
+    } else if (ctl_spc_pressed && keycode != GUI_ENT && keycode != CTL_SPC && !ctl_spc_registered) {
       register_code(KC_LCTL);
       ctl_spc_registered = true;
     }
@@ -340,39 +414,39 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       break;
 
-    case CTL_ENT:
+    case GUI_ENT:
       if (record->event.pressed) {
         if (ctl_spc_pressed) {
           tap_code16(C(KC_ENT));
-          ctl_ent_ctrl_enter_sent = true;
+          gui_ent_ctrl_enter_sent = true;
           return false;
         }
-        ctl_ent_pressed = true;
-        ctl_ent_registered = false;
-        ctl_ent_search_sent = false;
-        ctl_ent_timer = timer_read();
+        gui_ent_pressed = true;
+        gui_ent_registered = false;
+        gui_ent_search_sent = false;
+        gui_ent_timer = timer_read();
       } else {
-        if (ctl_ent_ctrl_enter_sent) {
-          ctl_ent_ctrl_enter_sent = false;
+        if (gui_ent_ctrl_enter_sent) {
+          gui_ent_ctrl_enter_sent = false;
           return false;
         }
-        if (ctl_ent_registered) {
-          unregister_code(KC_LCTL);
-        } else if (!ctl_ent_search_sent && timer_elapsed(ctl_ent_timer) < TAPPING_TERM) {
+        if (gui_ent_registered) {
+          unregister_code(KC_LGUI);
+        } else if (!gui_ent_search_sent && timer_elapsed(gui_ent_timer) < TAPPING_TERM) {
           tap_code(KC_ENT);
         }
-        ctl_ent_pressed = false;
-        ctl_ent_registered = false;
-        ctl_ent_search_sent = false;
+        gui_ent_pressed = false;
+        gui_ent_registered = false;
+        gui_ent_search_sent = false;
         release_alt_tab();
       }
       return false;
 
     case CTL_SPC:
       if (record->event.pressed) {
-        if (ctl_ent_pressed) {
+        if (gui_ent_pressed) {
           tap_windows_search();
-          ctl_ent_search_sent = true;
+          gui_ent_search_sent = true;
           ctl_spc_search_sent = true;
           return false;
         }
@@ -397,13 +471,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     case UPPER_BSPC:
       if (record->tap.count && record->event.pressed && ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT)) {
         tap_ctrl_backspace_without_alt();
-        return false;
-      }
-      break;
-
-    case LOWER_DEL:
-      if (record->tap.count && record->event.pressed && ((get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT)) {
-        tap_backspace_without_shift();
         return false;
       }
       break;
@@ -496,7 +563,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         HYPR_TAB,                KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                  KC_J,           KC_L,        KC_U,        KC_Z,        KC_RBRC,     KC_NUHS,
         MT(MOD_LSFT, KC_ESC),    KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                  KC_M,           KC_N,        KC_E,        KC_I,        KC_O,        KC_RSFT,
         KC_LCTL,                 KC_Y,       KC_X,       KC_C,       KC_D,       KC_V,                                  KC_K,           KC_H,        KC_COMM,     KC_DOT,      KC_SLSH,     KC_NUBS,
-                                         ALT_REP,    LOWER_DEL,  CTL_ENT,                   CTL_SPC,  UPPER_BSPC,     KC_RALT
+                                         ALT_REP,    LOWER_DEL,  GUI_ENT,                   CTL_SPC,  UPPER_BSPC,     KC_RALT
     ),
 
     [_LOWER] = LAYOUT_split_3x6_3(
@@ -506,7 +573,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                         _______,     _______,    _______,                    _______, _______, _______
     ),
     [_UPPER] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                    KC_NO,         KC_MPRV,             KC_COMM,           KC_DOT,    KC_NO,      QK_BOOT,
+        KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                               KC_NO,         KC_MPRV,             KC_COMM,           KC_DOT,    KC_NO,      QK_BOOT,
          _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_LEFT,       KC_DOWN,             KC_UP,             KC_RGHT,   KC_NO,      KC_NO,
          _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_HOME,       KC_PAGE_DOWN,        KC_PAGE_UP,        KC_END,    KC_MNXT,    KC_MPLY,
 
@@ -516,7 +583,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_NO,      QK_REP,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
         _______,    KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_SCLN,    QK_BOOT,
         KC_NO,      KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,                                           KC_NO,      KC_MPRV,    KC_VOLD,    KC_VOLU,    KC_MNXT,    KC_MPLY,
-        _______,    LCTL(LALT(KC_DEL)),    KC_SPACE,                    _______,  _______,    _______
+        _______,    LCTL(LALT(KC_DEL)),    _______,                    _______,  _______,    _______
 
 
     )
