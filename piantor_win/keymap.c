@@ -20,6 +20,7 @@ enum layers {
 enum custom_keycodes {
     CTL_ENT = SAFE_RANGE,
     CTL_SPC,
+    WIN_NEQ,
 };
 
 // https://docs.qmk.fm/features/combo
@@ -71,11 +72,6 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
-        send_string("REMOVED_1");
-    } else if (leader_sequence_one_key(KC_T)) {
-        send_string("REMOVED_3");
-    } else if (leader_sequence_one_key(KC_G)) {
-        send_string("REMOVED_2");
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
@@ -92,11 +88,25 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t* record,
   return true;
 }
 
+#define KO_SUPPRESS(trigger_mods_, trigger_, replacement_, suppressed_mods_) \
+    { \
+        .trigger_mods      = (trigger_mods_), \
+        .layers            = ~0, \
+        .negative_mod_mask = 0, \
+        .suppressed_mods   = (suppressed_mods_), \
+        .options           = ko_options_default, \
+        .trigger           = (trigger_), \
+        .replacement       = (replacement_), \
+        .custom_action     = NULL, \
+        .context           = NULL, \
+        .enabled           = NULL, \
+    }
+
 // Key Override für Morph Umlaute
-const key_override_t alt_a_to_ae = ko_make_basic(MOD_MASK_ALT, KC_A, DE_ADIA);
-const key_override_t alt_o_to_oe = ko_make_basic(MOD_MASK_ALT, KC_O, DE_ODIA);
-const key_override_t alt_u_to_ue = ko_make_basic(MOD_MASK_ALT, KC_U, DE_UDIA);
-const key_override_t alt_s_to_ss = ko_make_basic(MOD_MASK_ALT, KC_S, DE_SS);
+const key_override_t alt_a_to_ae = KO_SUPPRESS(MOD_MASK_ALT, KC_A, DE_ADIA, MOD_MASK_ALT);
+const key_override_t alt_o_to_oe = KO_SUPPRESS(MOD_MASK_ALT, KC_O, DE_ODIA, MOD_MASK_ALT);
+const key_override_t alt_u_to_ue = KO_SUPPRESS(MOD_MASK_ALT, KC_U, DE_UDIA, MOD_MASK_ALT);
+const key_override_t alt_s_to_ss = KO_SUPPRESS(MOD_MASK_ALT, KC_S, DE_SS, MOD_MASK_ALT);
 
 // // Key Override für Windows allgemein
 // const key_override_t hyper_del_to_ctrl_shift_enter = {
@@ -164,6 +174,15 @@ static void release_alt_tab(void) {
     }
 }
 
+static void tap_windows_not_equal(void) {
+    register_code(KC_LALT);
+    tap_code(KC_KP_8);
+    tap_code(KC_KP_8);
+    tap_code(KC_KP_0);
+    tap_code(KC_KP_0);
+    unregister_code(KC_LALT);
+}
+
 // Key Override für Windows Navigation
 const key_override_t lalt_shift_f_to_lgui_up = {
     .trigger_mods    = MOD_BIT(KC_LALT) | MOD_BIT(KC_LSFT),
@@ -177,7 +196,7 @@ const key_override_t lalt_shift_f_to_lgui_up = {
     .context         = NULL,
     .enabled         = NULL,
 };
-const key_override_t lalt_shift_f_to_lgui_right = {
+const key_override_t lalt_shift_p_to_lgui_right = {
     .trigger_mods    = MOD_BIT(KC_LALT) | MOD_BIT(KC_LSFT),
     .layers          = ~0,
     .negative_mod_mask = 0,
@@ -189,7 +208,7 @@ const key_override_t lalt_shift_f_to_lgui_right = {
     .context         = NULL,
     .enabled         = NULL,
 };
-const key_override_t lalt_shift_f_to_lgui_left = {
+const key_override_t lalt_shift_w_to_lgui_left = {
     .trigger_mods    = MOD_BIT(KC_LALT) | MOD_BIT(KC_LSFT),
     .layers          = ~0,
     .negative_mod_mask = 0,
@@ -264,10 +283,10 @@ const key_override_t lalt_b_to_lgui_5 = {
     .enabled         = NULL,
 };
 
-const key_override_t lalt_d_to_lgui_d = ko_make_basic(MOD_BIT(KC_LALT), KC_D, LGUI(KC_D));
+const key_override_t lalt_d_to_lgui_d = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_D, LGUI(KC_D), MOD_BIT(KC_LALT));
 
-const key_override_t lalt_backspace_to_lctl_backspace = ko_make_basic(MOD_BIT(KC_LALT), KC_BSPC, C(KC_BSPC));
-const key_override_t lalt_del_to_lctl_del = ko_make_basic(MOD_BIT(KC_LALT), KC_DEL, C(KC_DEL));
+const key_override_t lalt_backspace_to_lctl_backspace = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_BSPC, C(KC_BSPC), MOD_BIT(KC_LALT));
+const key_override_t lalt_del_to_lctl_del = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_DEL, C(KC_DEL), MOD_BIT(KC_LALT));
 
 const key_override_t lshift_lgui_space_to_lctl_enter = ko_make_basic(MOD_MASK_SHIFT | MOD_MASK_GUI, KC_SPACE, C(KC_ENT));
 
@@ -300,8 +319,8 @@ const key_override_t *key_overrides[] = {
 
     // Key Override für Windows Navigation
     &lalt_shift_f_to_lgui_up,
-    &lalt_shift_f_to_lgui_right,
-    &lalt_shift_f_to_lgui_left,
+    &lalt_shift_p_to_lgui_right,
+    &lalt_shift_w_to_lgui_left,
     &lalt_q_to_lgui_1,
     &lalt_w_to_lgui_2,
     &lalt_f_to_lgui_3,
@@ -414,6 +433,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       break;
 
+    case WIN_NEQ:
+      if (record->event.pressed) {
+        tap_windows_not_equal();
+      }
+      return false;
+
     case ALT_REP:  // LALT on hold, Repeat Key on tap.
       if (record->tap.count) {  // On tap.
         repeat_key_invoke(&record->event);  // Repeat the last key.
@@ -507,14 +532,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_LOWER] = LAYOUT_split_3x6_3(
         KC_GRV,       LSFT(KC_1), LSFT(KC_2), LSFT(KC_3),  LSFT(KC_4),  LSFT(KC_5),                                       LSFT(KC_6),         LSFT(KC_7),         LSFT(KC_8),     LSFT(KC_9), LSFT(KC_0), LSFT(KC_MINS),
-        _______,      KC_1,       KC_2,       KC_3,        KC_4,        KC_5,                                             DE_LABK,        DE_BSLS,        DE_LCBR,    DE_RCBR, UC(0x2260), DE_ACUT,
+        _______,      KC_1,       KC_2,       KC_3,        KC_4,        KC_5,                                             DE_LABK,        DE_BSLS,        DE_LCBR,    DE_RCBR, WIN_NEQ,    DE_ACUT,
         _______,      KC_6,       KC_7,       KC_8,        KC_9,        KC_0,                                             DE_RABK,        DE_PIPE,        DE_LBRC,    DE_RBRC, DE_QUOT,    DE_QUOT,
                                                         _______,     _______,    _______,                    _______, _______, _______
     ),
     [_UPPER] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                    KC_NO,         KC_MPRV,             KC_COMM,           KC_DOT,    KC_NO,      QK_BOOT,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_LEFT,       KC_DOWN,             KC_UP,             KC_RGHT,   KC_NO,      KC_NO,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_HOME,       KC_PAGE_DOWN,        KC_PAGE_UP,        KC_END,    KC_MNXT,    KC_MPLY,
+        KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                    KC_HOME,             LCTL(KC_HOME),       LCTL(KC_END),           KC_END,    KC_NO,      QK_BOOT,
+         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_LEFT,             KC_DOWN,             KC_UP,             KC_RGHT,   KC_NO,      KC_NO,
+         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       KC_PAGE_DOWN,        KC_PAGE_UP,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
 
                                                         _______,    _______,    _______,                    _______,  _______,    _______
     ),
