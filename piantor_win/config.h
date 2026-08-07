@@ -18,6 +18,9 @@
 
 #define MASTER_LEFT
 
+#define SPLIT_WATCHDOG_ENABLE
+#define SPLIT_WATCHDOG_TIMEOUT 3000
+
 #define UNICODE_SELECTED_MODES UNICODE_MODE_WINCOMPOSE
 
 #define TAPPING_TERM 150  // Zeit (in ms), um zwischen Tap und Hold zu unterscheiden
