@@ -135,6 +135,7 @@ static bool ctl_ent_pressed = false;
 static bool ctl_ent_registered = false;
 static bool ctl_ent_search_sent = false;
 static bool ctl_ent_ctrl_enter_sent = false;
+static bool ctl_ent_bspc_sent = false;
 static uint16_t ctl_ent_timer = 0;
 static bool ctl_spc_pressed = false;
 static bool ctl_spc_registered = false;
@@ -165,6 +166,27 @@ static void tap_backspace_without_shift(void) {
     tap_code(KC_BSPC);
     set_mods(mods);
     set_oneshot_mods(oneshot_mods);
+}
+
+static bool handle_ctl_ent_chord(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case KC_BSPC:
+        case UPPER_BSPC:
+            if (record->event.pressed) {
+                delete_line_to_start(true, NULL);
+                ctl_ent_search_sent = true;
+                ctl_ent_bspc_sent = true;
+            } else if (ctl_ent_bspc_sent) {
+                ctl_ent_bspc_sent = false;
+            }
+            return false;
+        default:
+            if (record->event.pressed) {
+                register_code(KC_LCTL);
+                ctl_ent_registered = true;
+            }
+            return true;
+    }
 }
 
 static void release_alt_tab(void) {
@@ -342,12 +364,13 @@ const key_override_t *key_overrides[] = {
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   if (record->event.pressed) {
     if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && keycode != HYPR_TAB && !ctl_ent_registered) {
-      register_code(KC_LCTL);
-      ctl_ent_registered = true;
+      return handle_ctl_ent_chord(keycode, record);
     } else if (ctl_spc_pressed && keycode != CTL_ENT && keycode != CTL_SPC && !ctl_spc_registered) {
       register_code(KC_LCTL);
       ctl_spc_registered = true;
     }
+  } else if (ctl_ent_pressed && ctl_ent_bspc_sent && (keycode == KC_BSPC || keycode == UPPER_BSPC)) {
+    return handle_ctl_ent_chord(keycode, record);
   }
 
   switch (keycode) {
@@ -389,6 +412,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
         ctl_ent_pressed = false;
         ctl_ent_registered = false;
         ctl_ent_search_sent = false;
+        ctl_ent_bspc_sent = false;
         release_alt_tab();
       }
       return false;
