@@ -122,20 +122,33 @@ static bool ctl_spc_pressed = false;
 static bool ctl_spc_registered = false;
 static bool ctl_spc_search_sent = false;
 static uint16_t ctl_spc_timer = 0;
+static bool alt_backspace_sent = false;
+static bool alt_del_sent = false;
 
 static void tap_windows_search(void) {
     tap_code16(G(KC_S));
 }
 
-static void tap_ctrl_backspace_without_alt(void) {
+static void tap_ctrl_key_without_alt(uint16_t keycode) {
     uint8_t mods = get_mods();
     uint8_t oneshot_mods = get_oneshot_mods();
 
+    unregister_code(KC_LALT);
+    unregister_code(KC_RALT);
     del_mods(MOD_MASK_ALT);
     del_oneshot_mods(MOD_MASK_ALT);
-    tap_code16(C(KC_BSPC));
+    send_keyboard_report();
+    tap_code16(C(keycode));
     set_mods(mods);
     set_oneshot_mods(oneshot_mods);
+}
+
+static void tap_ctrl_backspace_without_alt(void) {
+    tap_ctrl_key_without_alt(KC_BSPC);
+}
+
+static void tap_ctrl_del_without_alt(void) {
+    tap_ctrl_key_without_alt(KC_DEL);
 }
 
 static void tap_backspace_without_shift(void) {
@@ -433,9 +446,6 @@ const key_override_t *key_overrides[] = {
     &lalt_b_to_lgui_5,
     &lalt_d_to_lgui_d,
 
-    &lalt_backspace_to_lctl_backspace,
-    &lalt_del_to_lctl_del,
-
     &lshift_lgui_space_to_lctl_enter,
 
     &lgui_w_to_lalt_f4,  // Neuer Key Override
@@ -530,14 +540,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       return false;
 
+    case KC_BSPC:
     case UPPER_BSPC:
-      if (record->tap.count && record->event.pressed && ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT)) {
-        tap_ctrl_backspace_without_alt();
+      if (!record->event.pressed && alt_backspace_sent) {
+        alt_backspace_sent = false;
+        return false;
+      }
+      if ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT) {
+        if (record->event.pressed) {
+          tap_ctrl_backspace_without_alt();
+          alt_backspace_sent = true;
+        }
         return false;
       }
       break;
 
+    case KC_DEL:
     case LOWER_DEL:
+      if (!record->event.pressed && alt_del_sent) {
+        alt_del_sent = false;
+        return false;
+      }
+      if ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT) {
+        if (record->event.pressed) {
+          tap_ctrl_del_without_alt();
+          alt_del_sent = true;
+        }
+        return false;
+      }
       if (record->tap.count && record->event.pressed && ((get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT)) {
         tap_backspace_without_shift();
         return false;
