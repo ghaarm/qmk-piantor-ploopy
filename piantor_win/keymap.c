@@ -102,25 +102,6 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t* record,
         .enabled           = NULL, \
     }
 
-// Key Override für Morph Umlaute
-const key_override_t alt_a_to_ae = KO_SUPPRESS(MOD_MASK_ALT, KC_A, DE_ADIA, MOD_MASK_ALT);
-const key_override_t alt_o_to_oe = KO_SUPPRESS(MOD_MASK_ALT, KC_O, DE_ODIA, MOD_MASK_ALT);
-const key_override_t alt_u_to_ue = KO_SUPPRESS(MOD_MASK_ALT, KC_U, DE_UDIA, MOD_MASK_ALT);
-const key_override_t alt_s_to_ss = KO_SUPPRESS(MOD_MASK_ALT, KC_S, DE_SS, MOD_MASK_ALT);
-
-// // Key Override für Windows allgemein
-// const key_override_t hyper_del_to_ctrl_shift_enter = {
-//     .trigger_mods      = MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT | MOD_MASK_GUI,
-//     .layers            = ~0,
-//     .negative_mod_mask = 0,
-//     .suppressed_mods   = MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT | MOD_MASK_GUI,
-//     .options           = ko_options_default,
-//     .trigger           = KC_DEL,
-//     .replacement       = C(S(KC_ENT)),
-//     .custom_action     = NULL,
-//     .context           = NULL,
-//     .enabled           = NULL,
-// };
 
 bool delete_line_to_start(bool activated, void *context) {
     if (activated) {
@@ -204,6 +185,114 @@ static void tap_windows_not_equal(void) {
     tap_code(KC_KP_0);
     unregister_code(KC_LALT);
 }
+
+static void tap_code16_without_alt(uint16_t keycode) {
+    if ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT) {
+        tap_code(DUMMY_MOD_NEUTRALIZER_KEYCODE);
+    }
+
+    unregister_code(KC_LALT);
+    unregister_code(KC_RALT);
+    del_mods(MOD_MASK_ALT);
+    del_oneshot_mods(MOD_MASK_ALT);
+    send_keyboard_report();
+    tap_code16(keycode);
+}
+
+static bool process_alt_umlaut(uint16_t keycode, keyrecord_t *record) {
+    if (!record->event.pressed || !((get_mods() | get_oneshot_mods()) & MOD_BIT(KC_LALT))) {
+        return true;
+    }
+
+    switch (keycode) {
+        case KC_A:
+            tap_code16_without_alt(DE_ADIA);
+            return false;
+        case KC_O:
+            tap_code16_without_alt(DE_ODIA);
+            return false;
+        case KC_U:
+            tap_code16_without_alt(DE_UDIA);
+            return false;
+        case KC_S:
+            tap_code16_without_alt(DE_SS);
+            return false;
+        default:
+            return true;
+    }
+}
+
+
+// Key Override für Morph Umlaute
+// const key_override_t alt_a_to_ae = KO_SUPPRESS(MOD_MASK_ALT, KC_A, DE_ADIA, MOD_MASK_ALT);
+// const key_override_t alt_o_to_oe = KO_SUPPRESS(MOD_MASK_ALT, KC_O, DE_ODIA, MOD_MASK_ALT);
+// const key_override_t alt_u_to_ue = KO_SUPPRESS(MOD_MASK_ALT, KC_U, DE_UDIA, MOD_MASK_ALT);
+// const key_override_t alt_s_to_ss = KO_SUPPRESS(MOD_MASK_ALT, KC_S, DE_SS, MOD_MASK_ALT);
+
+const key_override_t alt_a_to_ae = {
+    .trigger_mods    = MOD_BIT(KC_LALT),
+    .layers          = ~0,
+    .negative_mod_mask = 0,
+    .suppressed_mods = MOD_BIT(KC_LALT),
+    .options         = ko_options_default,
+    .trigger         = KC_A,
+    .replacement     = DE_ADIA,
+    .custom_action   = NULL,
+    .context         = NULL,
+    .enabled         = NULL,
+};
+
+const key_override_t alt_o_to_oe = {
+    .trigger_mods    = MOD_BIT(KC_LALT),
+    .layers          = ~0,
+    .negative_mod_mask = 0,
+    .suppressed_mods = MOD_BIT(KC_LALT),
+    .options         = ko_options_default,
+    .trigger         = KC_O,
+    .replacement     = DE_ODIA,
+    .custom_action   = NULL,
+    .context         = NULL,
+    .enabled         = NULL,
+};
+
+const key_override_t alt_u_to_ue = {
+    .trigger_mods    = MOD_BIT(KC_LALT),
+    .layers          = ~0,
+    .negative_mod_mask = 0,
+    .suppressed_mods = MOD_BIT(KC_LALT),
+    .options         = ko_options_default,
+    .trigger         = KC_U,
+    .replacement     = DE_UDIA,
+    .custom_action   = NULL,
+    .context         = NULL,
+    .enabled         = NULL,
+};
+
+const key_override_t alt_s_to_ss = {
+    .trigger_mods    = MOD_BIT(KC_LALT),
+    .layers          = ~0,
+    .negative_mod_mask = 0,
+    .suppressed_mods = MOD_BIT(KC_LALT),
+    .options         = ko_options_default,
+    .trigger         = KC_S,
+    .replacement     = DE_SS,
+    .custom_action   = NULL,
+    .context         = NULL,
+    .enabled         = NULL,
+};
+// // Key Override für Windows allgemein
+// const key_override_t hyper_del_to_ctrl_shift_enter = {
+//     .trigger_mods      = MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT | MOD_MASK_GUI,
+//     .layers            = ~0,
+//     .negative_mod_mask = 0,
+//     .suppressed_mods   = MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT | MOD_MASK_GUI,
+//     .options           = ko_options_default,
+//     .trigger           = KC_DEL,
+//     .replacement       = C(S(KC_ENT)),
+//     .custom_action     = NULL,
+//     .context           = NULL,
+//     .enabled           = NULL,
+// };
 
 // Key Override für Windows Navigation
 const key_override_t lalt_shift_f_to_lgui_up = {
@@ -330,12 +419,6 @@ const key_override_t lgui_backspace_to_delete_line_to_start = {
 
 // Array von Key Overrides
 const key_override_t *key_overrides[] = {
-    // Key Override für Morph Umlaute
-    &alt_a_to_ae,
-    &alt_o_to_oe,
-    &alt_u_to_ue,
-    &alt_s_to_ss,
-
     // Key Override für Windows
     // &hyper_del_to_ctrl_shift_enter,
 
@@ -362,6 +445,10 @@ const key_override_t *key_overrides[] = {
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+  if (!process_alt_umlaut(keycode, record)) {
+    return false;
+  }
+
   if (record->event.pressed) {
     if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && keycode != HYPR_TAB && !ctl_ent_registered) {
       return handle_ctl_ent_chord(keycode, record);
