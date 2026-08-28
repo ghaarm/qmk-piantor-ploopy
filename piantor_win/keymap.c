@@ -124,6 +124,7 @@ static bool ctl_spc_search_sent = false;
 static uint16_t ctl_spc_timer = 0;
 static bool alt_backspace_sent = false;
 static bool alt_del_sent = false;
+static bool ctl_w_alt_f4_sent = false;
 
 static void tap_windows_search(void) {
     tap_code16(G(KC_S));
@@ -132,6 +133,10 @@ static void tap_windows_search(void) {
 static void tap_ctrl_key_without_alt(uint16_t keycode) {
     uint8_t mods = get_mods();
     uint8_t oneshot_mods = get_oneshot_mods();
+
+    if ((mods | oneshot_mods) & MOD_MASK_ALT) {
+        tap_code(DUMMY_MOD_NEUTRALIZER_KEYCODE);
+    }
 
     unregister_code(KC_LALT);
     unregister_code(KC_RALT);
@@ -149,6 +154,20 @@ static void tap_ctrl_backspace_without_alt(void) {
 
 static void tap_ctrl_del_without_alt(void) {
     tap_ctrl_key_without_alt(KC_DEL);
+}
+
+static void tap_alt_f4_without_ctrl(void) {
+    uint8_t mods = get_mods();
+    uint8_t oneshot_mods = get_oneshot_mods();
+
+    unregister_code(KC_LCTL);
+    unregister_code(KC_RCTL);
+    del_mods(MOD_MASK_CTRL);
+    del_oneshot_mods(MOD_MASK_CTRL);
+    send_keyboard_report();
+    tap_code16(A(KC_F4));
+    set_mods(mods);
+    set_oneshot_mods(oneshot_mods);
 }
 
 static void tap_backspace_without_shift(void) {
@@ -172,6 +191,13 @@ static bool handle_ctl_ent_chord(uint16_t keycode, keyrecord_t *record) {
                 ctl_ent_bspc_sent = true;
             } else if (ctl_ent_bspc_sent) {
                 ctl_ent_bspc_sent = false;
+            }
+            return false;
+        case KC_W:
+            if (record->event.pressed) {
+                tap_alt_f4_without_ctrl();
+                ctl_ent_search_sent = true;
+                ctl_w_alt_f4_sent = true;
             }
             return false;
         default:
@@ -471,6 +497,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   }
 
   switch (keycode) {
+    case KC_W:
+      if (!record->event.pressed && ctl_w_alt_f4_sent) {
+        ctl_w_alt_f4_sent = false;
+        return false;
+      }
+      if (record->event.pressed && ((get_mods() | get_oneshot_mods()) & MOD_MASK_CTRL)) {
+        tap_alt_f4_without_ctrl();
+        ctl_w_alt_f4_sent = true;
+        return false;
+      }
+      break;
+
     case HYPR_TAB:
       if (record->event.pressed && (ctl_ent_pressed || alt_tab_active || (get_mods() & MOD_MASK_GUI))) {
         del_mods(MOD_MASK_GUI);
@@ -685,7 +723,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                         _______,    _______,    _______,                    _______,  _______,    _______
     ),
     [_HYPR] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_NO,      QK_REP,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
+        KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_NO,      QK_BOOT,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
         _______,    KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_SCLN,    QK_BOOT,
         QK_BOOT,    KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,                                           KC_NO,      KC_MPRV,    KC_VOLD,    KC_VOLU,    KC_MNXT,    KC_MPLY,
                                _______,    LCTL(LALT(KC_DEL)),    KC_SPACE,                    _______,  _______,    _______
