@@ -72,6 +72,11 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
+        send_string("REMOVED_1");
+    } else if (leader_sequence_one_key(KC_T)) {
+        send_string("REMOVED_3");
+    } else if (leader_sequence_one_key(KC_G)) {
+        send_string("REMOVED_2");
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
