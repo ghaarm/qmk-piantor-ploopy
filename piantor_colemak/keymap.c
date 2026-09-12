@@ -17,23 +17,45 @@ enum layers {
     _FUNCTION
 };
 
-#define LT_REP LT(_LOWER, KC_0)
-// Use `LT_REP` in your layout...
+#define HYPR_TAB MT(MOD_HYPR, KC_TAB)
+#define HYPR_Y MT(MOD_HYPR, KC_Y)
+#define HYPR_SLSH MT(MOD_HYPR, KC_SLSH)
+#define ALT_REP MT(MOD_LALT, KC_0)
+#define LOWER_DEL LT(_LOWER, KC_DEL)
+#define UPPER_BSPC LT(_UPPER, KC_BSPC)
+#define GUI_ENT MT(MOD_LGUI, KC_ENT)
+#define GUI_SPC MT(MOD_LGUI, KC_SPC)
+
+// Use `ALT_REP` in your layout...
 // https://getreuer.info/posts/keyboards/faqs/index.html#layer-tap-repeat-key
 bool remember_last_key_user(uint16_t keycode, keyrecord_t* record,
                             uint8_t* remembered_mods) {
-  if (keycode == LT_REP) { return false; }
+  if (keycode == ALT_REP) { return false; }
   return true;
 }
+
+#define KO_SUPPRESS(trigger_mods_, trigger_, replacement_, suppressed_mods_) \
+    { \
+        .trigger_mods      = (trigger_mods_), \
+        .layers            = ~0, \
+        .negative_mod_mask = 0, \
+        .suppressed_mods   = (suppressed_mods_), \
+        .options           = ko_options_default, \
+        .trigger           = (trigger_), \
+        .replacement       = (replacement_), \
+        .custom_action     = NULL, \
+        .context           = NULL, \
+        .enabled           = NULL, \
+    }
 
 // Key Override
 const key_override_t lshift_lgui_space_to_lctl_enter = ko_make_basic(MOD_MASK_SHIFT | MOD_MASK_GUI, KC_SPACE, G(KC_ENT));
 
 // Key Override für Morph Umlaute
-const key_override_t alt_a_to_ae = ko_make_basic(MOD_MASK_ALT, KC_A, DE_ADIA);
-const key_override_t alt_o_to_oe = ko_make_basic(MOD_MASK_ALT, KC_O, DE_UDIA);
-const key_override_t alt_u_to_ue = ko_make_basic(MOD_MASK_ALT, KC_U, DE_UDIA);
-const key_override_t alt_s_to_ss = ko_make_basic(MOD_MASK_ALT, KC_S, DE_SS);
+const key_override_t alt_a_to_ae = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_A, DE_ADIA, MOD_BIT(KC_LALT));
+const key_override_t alt_o_to_oe = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_O, DE_ODIA, MOD_BIT(KC_LALT));
+const key_override_t alt_u_to_ue = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_U, DE_UDIA, MOD_BIT(KC_LALT));
+const key_override_t alt_s_to_ss = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_S, DE_SS, MOD_BIT(KC_LALT));
 
 /* const key_override_t hyper_nuhs_to_shift_minus = ko_make_with_layers_and_negmods( */
 const key_override_t hyper_nuhs_to_shift_minus = ko_make_basic(
@@ -56,7 +78,7 @@ const key_override_t *key_overrides[] = {
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   switch (keycode) {
-    case LT_REP:  // NAV layer on hold, Repeat Key on tap.
+    case ALT_REP:  // LALT on hold, Repeat Key on tap.
       if (record->tap.count) {  // On tap.
         repeat_key_invoke(&record->event);  // Repeat the last key.
         return false;  // Skip default handling.
@@ -203,13 +225,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 /*     return true; */
 /* } */
 
-void matrix_scan_user(void) {
-    if (layer_state_is(_LOWER) && layer_state_is(_UPPER)) {
-        layer_on(_FUNCTION); // Aktiviere das Function-Layer
-    } else {
-        layer_off(_FUNCTION); // Deaktiviere das Function-Layer
-    }
-}
+// ZMK-Vorlage hat keinen Tri-Layer; LOWER und UPPER bleiben getrennt.
 
 
 /* void matrix_scan_user(void) { */
@@ -238,22 +254,22 @@ void matrix_scan_user(void) {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT_split_3x6_3(
-        MT(MOD_HYPR, KC_TAB),   KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                                               KC_J,           KC_L,           KC_U, KC_Z,    KC_RBRC,     KC_NUHS,
-        MT(MOD_LSFT, KC_ESC),   KC_A,   KC_R,       KC_S,   KC_T,       KC_G,                                                               KC_M,           KC_N,           KC_E,    KC_I,    KC_O,     KC_RSFT,
-        KC_LCTL,                KC_Y,       KC_X,       KC_C,       KC_D,       KC_V,                                                               KC_K,           KC_H,           KC_COMM, KC_DOT,  KC_SLSH,      KC_NUBS,
-                                                                    MT(MOD_LALT, KC_DEL),    LT_REP,     MT(MOD_LGUI, KC_ENT),   KC_SPACE,       LT(MO(_UPPER), KC_BSPC),     KC_RALT
+        HYPR_TAB,               KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                                               KC_J,           KC_L,           KC_U,     KC_Z,    KC_RBRC,     HYPR_TAB,
+        MT(MOD_LSFT, KC_ESC),   KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                                               KC_M,           KC_N,           KC_E,     KC_I,    KC_O,        KC_RSFT,
+        KC_LCTL,                HYPR_Y,     KC_X,       KC_C,       KC_D,       KC_V,                                                               KC_K,           KC_H,           KC_COMM,  KC_DOT,  HYPR_SLSH,    KC_LCTL,
+                                                                    ALT_REP,    LOWER_DEL, GUI_ENT,                                      GUI_SPC, UPPER_BSPC,    KC_LALT
     ),
 
     [_LOWER] = LAYOUT_split_3x6_3(
-        KC_GRV,   LSFT(KC_1), LSFT(KC_2), LSFT(KC_3),  LSFT(KC_4),  LSFT(KC_5),                                      LSFT(KC_6),         LSFT(KC_7),         LSFT(KC_8),           LSFT(KC_9),         LSFT(KC_0),     LSFT(KC_MINS),
-        _______,    KC_1,      KC_2,      KC_3,      KC_4,      KC_5,                                                 KC_NO,              KC_NO,              LALT(KC_8),           LALT(KC_9),         KC_SCLN,        KC_EQL,
-        _______,      KC_6,      KC_7,      KC_8,      KC_9,      KC_0,                                               KC_NO,              KC_NO,              LSFT(LGUI(KC_8)),     LSFT(LGUI(KC_9)),   KC_NO,          KC_PIPE,
+        KC_GRV,     LSFT(KC_1), LSFT(KC_2), LSFT(KC_3),  LSFT(KC_4),  LSFT(KC_5),                                      LSFT(KC_6),         LSFT(KC_7),         LSFT(KC_8),           LSFT(KC_9),         LSFT(KC_0),     DE_QUES,
+        _______,    KC_1,       KC_2,       KC_3,        KC_4,        KC_5,                                            KC_NUBS,            LSFT(LALT(KC_7)),   LALT(KC_8),           LALT(KC_9),         RALT(KC_0),     KC_EQL,
+        _______,    KC_6,       KC_7,       KC_8,        KC_9,        KC_0,                                            LSFT(KC_NUBS),      LALT(KC_7),         LSFT(LGUI(KC_8)),     LSFT(LGUI(KC_9)),   KC_PIPE,        KC_PIPE,
                                                         _______,     _______,    _______,                    _______, _______, _______
     ),
     [_UPPER] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,     KC_NO,     KC_NO,     KC_NO,     QK_REP,                                               KC_NO,      KC_MPRV,    KC_COMM,    KC_DOT,   KC_NO,  QK_BOOT,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                       KC_LEFT,            KC_DOWN,            KC_UP,          KC_RGHT,    KC_NO,      _______,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                       KC_HOME,       KC_PAGE_UP,        KC_PAGE_DOWN,        KC_END,    KC_MNXT,    KC_MPLY,
+        QK_BOOT,   KC_NO,      KC_NO,      KC_NO,      LGUI(LSFT(KC_4)), KC_NO,                                       LGUI(KC_LEFT),      LGUI(KC_UP),        LGUI(KC_DOWN),       LGUI(KC_RGHT),      KC_NO,          QK_BOOT,
+        _______,   KC_NO,      KC_BRIU,    KC_MPRV,    KC_MNXT,    KC_MPLY,                                           KC_LEFT,            KC_DOWN,            KC_UP,              KC_RGHT,            LALT(KC_HOME),  _______,
+        KC_NO,     KC_NO,      KC_BRID,    KC_VOLD,    KC_VOLU,    KC_MUTE,                                           LALT(KC_LEFT),      KC_PGDN,            KC_PGUP,            LALT(KC_RGHT),      KC_NO,          KC_NO,
                                                         _______,    _______,    _______,                    _______,  _______,    _______
 
     ),
@@ -267,5 +283,4 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 
 };
-
 
