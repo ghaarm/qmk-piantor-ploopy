@@ -25,6 +25,7 @@ enum layers {
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
 #define GUI_ENT MT(MOD_LGUI, KC_ENT)
 #define GUI_SPC MT(MOD_LGUI, KC_SPC)
+#define CTL_BTN2 MT(MOD_LCTL, MS_BTN2)
 
 // Use `ALT_REP` in your layout...
 // https://getreuer.info/posts/keyboards/faqs/index.html#layer-tap-repeat-key
@@ -256,7 +257,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT_split_3x6_3(
         HYPR_TAB,               KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                                               KC_J,           KC_L,           KC_U,     KC_Z,    KC_RBRC,     HYPR_TAB,
         MT(MOD_LSFT, KC_ESC),   KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                                               KC_M,           KC_N,           KC_E,     KC_I,    KC_O,        KC_RSFT,
-        KC_LCTL,                HYPR_Y,     KC_X,       KC_C,       KC_D,       KC_V,                                                               KC_K,           KC_H,           KC_COMM,  KC_DOT,  HYPR_SLSH,    KC_LCTL,
+        KC_LCTL,                HYPR_Y,     KC_X,       KC_C,       KC_D,       KC_V,                                                               KC_K,           KC_H,           KC_COMM,  KC_DOT,  HYPR_SLSH,    CTL_BTN2,
                                                                     ALT_REP,    LOWER_DEL, GUI_ENT,                                      GUI_SPC, UPPER_BSPC,    KC_LALT
     ),
 
@@ -283,4 +284,3 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 
 };
-
