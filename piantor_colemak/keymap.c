@@ -39,7 +39,7 @@ bool remember_last_key_user(uint16_t keycode, keyrecord_t* record,
     { \
         .trigger_mods      = (trigger_mods_), \
         .layers            = ~0, \
-        .negative_mod_mask = 0, \
+        .negative_mod_mask = MOD_MASK_CTRL | MOD_MASK_GUI, \
         .suppressed_mods   = (suppressed_mods_), \
         .options           = ko_options_default, \
         .trigger           = (trigger_), \
