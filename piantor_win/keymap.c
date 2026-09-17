@@ -21,6 +21,7 @@ enum custom_keycodes {
     CTL_ENT = SAFE_RANGE,
     CTL_SPC,
     WIN_NEQ,
+    ALT_REP,
 };
 
 // https://docs.qmk.fm/features/combo
@@ -72,20 +73,14 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
-        send_string("REMOVED_1");
-    } else if (leader_sequence_one_key(KC_T)) {
-        send_string("REMOVED_3");
-    } else if (leader_sequence_one_key(KC_G)) {
-        send_string("REMOVED_2");
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
     // }
 }
 
-// #define LT_REP LT(_LOWER, KC_0)
-#define ALT_REP MT(MOD_LALT, KC_0)
-// Use `ALT_REP` in your layout...
+// Tap = Repeat Key, hold = Left Alt. This is implemented explicitly so that
+// ALT_REP + S can be turned into ss before Left Alt ever reaches Windows.
 // https://getreuer.info/posts/keyboards/faqs/index.html#layer-tap-repeat-key
 bool remember_last_key_user(uint16_t keycode, keyrecord_t* record,
                             uint8_t* remembered_mods) {
@@ -130,6 +125,25 @@ static uint16_t ctl_spc_timer = 0;
 static bool alt_backspace_sent = false;
 static bool alt_del_sent = false;
 static bool ctl_w_alt_f4_sent = false;
+static bool alt_rep_pressed = false;
+static bool alt_rep_registered = false;
+static bool alt_rep_used = false;
+static bool alt_rep_s_suppressed = false;
+static uint16_t alt_rep_timer = 0;
+
+static void register_alt_rep(void) {
+    if (!alt_rep_registered) {
+        register_code(KC_LALT);
+        alt_rep_registered = true;
+    }
+}
+
+void matrix_scan_user(void) {
+    if (alt_rep_pressed && !alt_rep_used && !alt_rep_registered &&
+        timer_elapsed(alt_rep_timer) >= TAPPING_TERM) {
+        register_alt_rep();
+    }
+}
 
 static void tap_windows_search(void) {
     tap_code16(G(KC_S));
@@ -486,6 +500,31 @@ const key_override_t *key_overrides[] = {
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+  // ALT_REP + S is handled while Alt is still pending. This guarantees that
+  // Outlook never receives Alt+S, while tap=Repeat and hold=Alt stay intact.
+  if (keycode == KC_S && alt_rep_s_suppressed) {
+    if (!record->event.pressed) {
+      alt_rep_s_suppressed = false;
+    }
+    return false;
+  }
+
+  if (record->event.pressed && alt_rep_pressed && keycode != ALT_REP) {
+    alt_rep_used = true;
+    if (keycode == KC_S) {
+      if (alt_rep_registered) {
+        tap_code(DUMMY_MOD_NEUTRALIZER_KEYCODE);
+        unregister_code(KC_LALT);
+        alt_rep_registered = false;
+        send_keyboard_report();
+      }
+      tap_code16(DE_SS);
+      alt_rep_s_suppressed = true;
+      return false;
+    }
+    register_alt_rep();
+  }
+
   if (!process_alt_umlaut(keycode, record)) {
     return false;
   }
@@ -624,11 +663,29 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       return false;
 
     case ALT_REP:  // LALT on hold, Repeat Key on tap.
-      if (record->tap.count) {  // On tap.
-        repeat_key_invoke(&record->event);  // Repeat the last key.
-        return false;  // Skip default handling.
+      if (record->event.pressed) {
+        alt_rep_pressed = true;
+        alt_rep_registered = false;
+        alt_rep_used = false;
+        alt_rep_timer = timer_read();
+      } else {
+        bool was_registered = alt_rep_registered;
+        if (alt_rep_registered) {
+          unregister_code(KC_LALT);
+        }
+        alt_rep_pressed = false;
+        alt_rep_registered = false;
+        if (!alt_rep_used && !was_registered && timer_elapsed(alt_rep_timer) < TAPPING_TERM) {
+          // The decision that this was a tap is only known on release. Send a
+          // complete synthetic press/release pair to the Repeat Key feature.
+          keyevent_t repeat_event = record->event;
+          repeat_event.pressed = true;
+          repeat_key_invoke(&repeat_event);
+          repeat_event.pressed = false;
+          repeat_key_invoke(&repeat_event);
+        }
       }
-      break;
+      return false;
 
     // Other macros...
   }

@@ -13,8 +13,8 @@
 
 #define USB_VBUS_PIN GP19
 
-// #define SPLIT_HAND_PIN GP17
-// #define SPLIT_HAND_PIN_LOW_IS_LEFT
+#define SPLIT_HAND_PIN GP17
+#define SPLIT_HAND_PIN_LOW_IS_LEFT
 
 #define MASTER_LEFT
 
