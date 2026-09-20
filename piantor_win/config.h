@@ -40,3 +40,21 @@
     MOD_BIT(KC_RALT) | MOD_BIT(KC_LSFT), \
     MOD_BIT(KC_RALT) | MOD_BIT(KC_RSFT), \
 }
+
+// Mouse wheel scrolling
+#define MK_KINETIC_SPEED // quadratische Scrollgeschwindigkeit, am Anfang langsamer dann schneller
+
+#define MOUSEKEY_WHEEL_DELAY 10  
+#define MOUSEKEY_WHEEL_INTERVAL 20
+#define MOUSEKEY_WHEEL_INITIAL_MOVEMENTS 8
+#define MOUSEKEY_WHEEL_BASE_MOVEMENTS 120
+#define MOUSEKEY_WHEEL_ACCELERATED_MOVEMENTS 100
+#define MOUSEKEY_WHEEL_DECELERATED_MOVEMENTS 8
+
+
+// ohne Kinetic
+// #define MOUSEKEY_WHEEL_DELAY 150
+// #define MOUSEKEY_WHEEL_INTERVAL 80
+// #define MOUSEKEY_WHEEL_DELTA 1 // wie viel pro einem scroll gescrollt wird
+// #define MOUSEKEY_WHEEL_TIME_TO_MAX 40
+// #define MOUSEKEY_WHEEL_MAX_SPEED 3

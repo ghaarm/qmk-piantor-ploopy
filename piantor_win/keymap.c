@@ -4,6 +4,13 @@
 #include QMK_KEYBOARD_H
 #include  "keymap_german.h"
 
+#if __has_include("private.h")
+#    include "private.h"
+#else
+#    define STRING1 ""
+#    define STRING2 ""
+#    define STRING3 ""
+#endif
 
 // Globale Variablen für die Backspace-Wiederholung
 /* static bool backspace_active = false;  // Status der Backspace-Taste */
@@ -73,6 +80,11 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
 }
 void leader_end_user(void) {
     if (leader_sequence_one_key(KC_S)) {
+        send_string(STRING1);
+    } else if (leader_sequence_one_key(KC_T)) {
+        send_string(STRING2);
+    } else if (leader_sequence_one_key(KC_G)) {
+        send_string(STRING3);
     }
     // } else if (leader_sequence_three_keys(KC_A, KC_R, KC_B)) {
     //     SEND_STRING("arbeit@example.com");
@@ -780,12 +792,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_UPPER] = LAYOUT_split_3x6_3(
         KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                    KC_HOME,             LCTL(KC_HOME),       LCTL(KC_END),           KC_END,    KC_NO,      QK_BOOT,
          _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_LEFT,             KC_DOWN,             KC_UP,             KC_RGHT,   KC_NO,      KC_NO,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       KC_PAGE_DOWN,        KC_PAGE_UP,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
+         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       MS_WHLD,             MS_WHLU,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
 
                                                         _______,    _______,    _______,                    _______,  _______,    _______
     ),
     [_HYPR] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_NO,      QK_BOOT,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
+        KC_NO,      KC_NO,      KC_NO,      MS_WHLU,      MS_WHLD,      QK_BOOT,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
         _______,    KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_SCLN,    QK_BOOT,
         QK_BOOT,    KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,                                           KC_NO,      KC_MPRV,    KC_VOLD,    KC_VOLU,    KC_MNXT,    KC_MPLY,
                                _______,    LCTL(LALT(KC_DEL)),    KC_SPACE,                    _______,  _______,    _______
