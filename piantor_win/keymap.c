@@ -36,31 +36,19 @@ enum custom_keycodes {
 
 enum combo_events {
   EM_EMAIL,
-  BSPC_LSFT_CLEAR,
   XC_LEADER, // damit xc den leader aktiviert
 };
 
-bool get_combo_must_tap(uint16_t combo_index, combo_t *combo) {
-    // Prüfe, ob die Combo die Tap-Aktion benötigt
-    switch (combo_index) {
-        case BSPC_LSFT_CLEAR:  // Dein Combo-Name
-            return true;       // Nur die Tap-Aktion erlauben
-        default:
-            return false;      // Andere Combos können normal funktionieren
-    }
-}
 const uint16_t PROGMEM email_combo[] = {KC_Q, KC_W, COMBO_END};
 #define HYPR_TAB LT(_HYPR, KC_TAB)
 #define LOWER_DEL LT(_LOWER, KC_DEL)
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
 
-const uint16_t PROGMEM clear_line_combo[] = {CTL_ENT, UPPER_BSPC, COMBO_END};
 const uint16_t PROGMEM xc_leader_combo[] = { KC_X, KC_C, COMBO_END };
 
 combo_t key_combos[] = {
   [EM_EMAIL] = COMBO_ACTION(email_combo),
-  [BSPC_LSFT_CLEAR] = COMBO_ACTION(clear_line_combo),
-    [XC_LEADER] = COMBO(xc_leader_combo, QK_LEAD),
+  [XC_LEADER] = COMBO(xc_leader_combo, QK_LEAD),
 };
 
 void process_combo_event(uint16_t combo_index, bool pressed) {
@@ -68,12 +56,6 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
     case EM_EMAIL:
       if (pressed) {
         SEND_STRING("john.doe@example.com");
-      }
-      break;
-    case BSPC_LSFT_CLEAR:
-      if (pressed) {
-        tap_code16(S(KC_HOME));
-        tap_code16(KC_BSPC);
       }
       break;
   }
@@ -269,6 +251,23 @@ static void tap_code16_without_alt(uint16_t keycode) {
     tap_code16(keycode);
 }
 
+static void tap_gui_key_without_alt_shift(uint16_t keycode) {
+    uint8_t mods = get_mods();
+    uint8_t oneshot_mods = get_oneshot_mods();
+
+    unregister_code(KC_LALT);
+    unregister_code(KC_RALT);
+    unregister_code(KC_LSFT);
+    unregister_code(KC_RSFT);
+    del_mods(MOD_MASK_ALT | MOD_MASK_SHIFT);
+    del_oneshot_mods(MOD_MASK_ALT | MOD_MASK_SHIFT);
+    send_keyboard_report();
+    tap_code16(G(keycode));
+    set_mods(mods);
+    set_oneshot_mods(oneshot_mods);
+    send_keyboard_report();
+}
+
 static bool process_alt_umlaut(uint16_t keycode, keyrecord_t *record) {
     if (!record->event.pressed || !((get_mods() | get_oneshot_mods()) & MOD_BIT(KC_LALT))) {
         return true;
@@ -286,6 +285,38 @@ static bool process_alt_umlaut(uint16_t keycode, keyrecord_t *record) {
             return false;
         case KC_S:
             tap_code16_without_alt(DE_SS);
+            return false;
+        case KC_L:
+            // German Windows uses AltGr+Q for @. Keep Alt+L as the
+            // ergonomic trigger, but send the layout-correct keycode.
+            tap_code16_without_alt(DE_AT);
+            return false;
+        default:
+            return true;
+    }
+}
+
+static bool process_alt_shift_windows_nav(uint16_t keycode, keyrecord_t *record) {
+    if (!record->event.pressed) {
+        return true;
+    }
+
+    uint8_t mods = get_mods() | get_oneshot_mods();
+    // Each mask contains BOTH left and right modifier bits. Require one
+    // Alt and one Shift, not all four physical modifiers at once.
+    if (!(mods & MOD_MASK_ALT) || !(mods & MOD_MASK_SHIFT)) {
+        return true;
+    }
+
+    switch (keycode) {
+        case KC_F:
+            tap_gui_key_without_alt_shift(KC_UP);
+            return false;
+        case KC_P:
+            tap_gui_key_without_alt_shift(KC_RGHT);
+            return false;
+        case KC_W:
+            tap_gui_key_without_alt_shift(KC_LEFT);
             return false;
         default:
             return true;
@@ -493,9 +524,6 @@ const key_override_t *key_overrides[] = {
     // &hyper_del_to_ctrl_shift_enter,
 
     // Key Override für Windows Navigation
-    &lalt_shift_f_to_lgui_up,
-    &lalt_shift_p_to_lgui_right,
-    &lalt_shift_w_to_lgui_left,
     &lalt_q_to_lgui_1,
     &lalt_w_to_lgui_2,
     &lalt_f_to_lgui_3,
@@ -541,6 +569,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     return false;
   }
 
+  if (!process_alt_shift_windows_nav(keycode, record)) {
+    return false;
+  }
+
   if (record->event.pressed) {
     if (ctl_ent_pressed && keycode != CTL_ENT && keycode != CTL_SPC && keycode != HYPR_TAB && !ctl_ent_registered) {
       return handle_ctl_ent_chord(keycode, record);
@@ -566,8 +598,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       break;
 
     case HYPR_TAB:
-      if (record->event.pressed && (ctl_ent_pressed || alt_tab_active || (get_mods() & MOD_MASK_GUI))) {
+      if (record->event.pressed && (ctl_ent_pressed || alt_tab_active || (get_mods() & (MOD_MASK_CTRL | MOD_MASK_GUI)))) {
+        // The dedicated Ctrl key should invoke Alt+Tab as well. Remove Ctrl
+        // before sending the chord so Windows does not receive Ctrl+Alt+Tab.
+        unregister_code(KC_LCTL);
+        unregister_code(KC_RCTL);
+        del_mods(MOD_MASK_CTRL);
         del_mods(MOD_MASK_GUI);
+        send_keyboard_report();
         ctl_ent_search_sent = true;
         register_code(KC_LALT);
         tap_code(KC_TAB);
@@ -576,6 +614,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       if (!record->event.pressed && alt_tab_active) {
         return false;
+      }
+      break;
+
+    case KC_LCTL:
+    case KC_RCTL:
+      if (!record->event.pressed && alt_tab_active) {
+        release_alt_tab();
       }
       break;
 
