@@ -43,6 +43,7 @@ const uint16_t PROGMEM email_combo[] = {KC_Q, KC_W, COMBO_END};
 #define HYPR_TAB LT(_HYPR, KC_TAB)
 #define LOWER_DEL LT(_LOWER, KC_DEL)
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
+#define MEH_Y MEH_T(KC_Y) // Tap: Z on German Windows; hold: Ctrl+Shift+Alt.
 
 const uint16_t PROGMEM xc_leader_combo[] = { KC_X, KC_C, COMBO_END };
 
@@ -322,7 +323,8 @@ static bool process_alt_shift_windows_nav(uint16_t keycode, keyrecord_t *record)
     uint8_t mods = get_mods() | get_oneshot_mods();
     // Each mask contains BOTH left and right modifier bits. Require one
     // Alt and one Shift, not all four physical modifiers at once.
-    if (!(mods & MOD_MASK_ALT) || !(mods & MOD_MASK_SHIFT)) {
+    // Ctrl+Alt+Shift is Meh: let its scrolling overrides handle F and P.
+    if (!(mods & MOD_MASK_ALT) || !(mods & MOD_MASK_SHIFT) || (mods & MOD_MASK_CTRL)) {
         return true;
     }
 
@@ -535,8 +537,19 @@ const key_override_t lgui_backspace_to_delete_line_to_start = {
 };
 
 
+// Suppress Meh while scrolling so Ctrl does not turn the wheel into zoom.
+// Releasing Meh before F/P must stop scrolling without typing the letter.
+const key_override_t meh_f_to_wheel_up = ko_make_with_layers_negmods_and_options(
+    MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT, KC_F, MS_WHLU, ~0,
+    MOD_MASK_GUI, ko_option_activation_trigger_down | ko_option_no_reregister_trigger);
+const key_override_t meh_p_to_wheel_down = ko_make_with_layers_negmods_and_options(
+    MOD_MASK_CTRL | MOD_MASK_SHIFT | MOD_MASK_ALT, KC_P, MS_WHLD, ~0,
+    MOD_MASK_GUI, ko_option_activation_trigger_down | ko_option_no_reregister_trigger);
+
 // Array von Key Overrides
 const key_override_t *key_overrides[] = {
+    &meh_f_to_wheel_up,
+    &meh_p_to_wheel_down,
     // Key Override für Windows
     // &hyper_del_to_ctrl_shift_enter,
 
@@ -557,6 +570,12 @@ const key_override_t *key_overrides[] = {
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+  if (keycode == MEH_Y && !record->tap.count && !record->event.pressed) {
+    // Key overrides only recognize basic modifier releases. Notify them
+    // before QMK releases this Mod-Tap's mods, so the wheel stops on Y-up.
+    process_key_override(KC_LCTL, record);
+  }
+
   // ALT_REP + S is handled while Alt is still pending. This guarantees that
   // Outlook never receives Alt+S, while tap=Repeat and hold=Alt stay intact.
   if (keycode == KC_S && alt_rep_s_suppressed) {
@@ -841,7 +860,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT_split_3x6_3(
         HYPR_TAB,                KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                  KC_J,           KC_L,        KC_U,        KC_Z,        KC_RBRC,     KC_NUHS,
         MT(MOD_LSFT, KC_ESC),    KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                  KC_M,           KC_N,        KC_E,        KC_I,        KC_O,        KC_RSFT,
-        KC_LCTL,                 KC_Y,       KC_X,       KC_C,       KC_D,       KC_V,                                  KC_K,           KC_H,        KC_COMM,     KC_DOT,      KC_SLSH,     KC_NUBS,
+        KC_LCTL,                 MEH_Y,      KC_X,       KC_C,       KC_D,       KC_V,                                  KC_K,           KC_H,        KC_COMM,     KC_DOT,      KC_SLSH,     KC_NUBS,
                                          ALT_REP,    LOWER_DEL,  CTL_ENT,                   CTL_SPC,  UPPER_BSPC,     KC_RALT
     ),
 
