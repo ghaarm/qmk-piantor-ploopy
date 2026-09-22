@@ -165,8 +165,26 @@ static void tap_ctrl_backspace_without_alt(void) {
     tap_ctrl_key_without_alt(KC_BSPC);
 }
 
-static void tap_ctrl_del_without_alt(void) {
-    tap_ctrl_key_without_alt(KC_DEL);
+static void delete_word_right_without_mods(void) {
+    uint8_t mods = get_mods();
+    uint8_t weak_mods = get_weak_mods();
+    uint8_t oneshot_mods = get_oneshot_mods();
+
+    if ((mods | weak_mods | oneshot_mods) & MOD_MASK_ALT) {
+        tap_code(DUMMY_MOD_NEUTRALIZER_KEYCODE);
+    }
+
+    clear_mods();
+    clear_weak_mods();
+    clear_oneshot_mods();
+    send_keyboard_report();
+    // ORBIS supports selecting the next word, but not Ctrl+Delete.
+    tap_code16(C(S(KC_RGHT)));
+    tap_code(KC_DEL);
+    set_mods(mods);
+    set_weak_mods(weak_mods);
+    set_oneshot_mods(oneshot_mods);
+    send_keyboard_report();
 }
 
 static void tap_alt_f4_without_ctrl(void) {
@@ -498,7 +516,6 @@ const key_override_t lalt_b_to_lgui_5 = {
 const key_override_t lalt_d_to_lgui_d = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_D, LGUI(KC_D), MOD_BIT(KC_LALT));
 
 const key_override_t lalt_backspace_to_lctl_backspace = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_BSPC, C(KC_BSPC), MOD_BIT(KC_LALT));
-const key_override_t lalt_del_to_lctl_del = KO_SUPPRESS(MOD_BIT(KC_LALT), KC_DEL, C(KC_DEL), MOD_BIT(KC_LALT));
 
 const key_override_t lshift_lgui_space_to_lctl_enter = ko_make_basic(MOD_MASK_SHIFT | MOD_MASK_GUI, KC_SPACE, C(KC_ENT));
 
@@ -702,7 +719,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       if ((get_mods() | get_oneshot_mods()) & MOD_MASK_ALT) {
         if (record->event.pressed) {
-          tap_ctrl_del_without_alt();
+          delete_word_right_without_mods();
           alt_del_sent = true;
         }
         return false;
