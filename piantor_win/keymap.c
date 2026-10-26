@@ -873,7 +873,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_UPPER] = LAYOUT_split_3x6_3(
         KC_NO,      KC_NO,       KC_NO,       KC_NO,        LGUI(LSFT(KC_S)),       QK_REP,                    KC_HOME,             LCTL(KC_HOME),       LCTL(KC_END),           KC_END,    KC_NO,      QK_BOOT,
          _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                KC_LEFT,             KC_DOWN,             KC_UP,             KC_RGHT,   KC_NO,      KC_NO,
-         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       MS_WHLD,             MS_WHLU,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
+         _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       KC_PGDN,             KC_PGUP,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
+         // _______,   KC_NO,       KC_NO,       KC_NO,        KC_NO,       KC_NO,                                LCTL(KC_LEFT),       MS_WHLD,             MS_WHLU,        LCTL(KC_RGHT),    KC_MNXT,    KC_MPLY,
 
                                                         _______,    _______,    _______,                    _______,  _______,    _______
     ),
