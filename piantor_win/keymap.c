@@ -43,7 +43,14 @@ const uint16_t PROGMEM email_combo[] = {KC_Q, KC_W, COMBO_END};
 #define HYPR_TAB LT(_HYPR, KC_TAB)
 #define LOWER_DEL LT(_LOWER, KC_DEL)
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
+#define SHIFT_ESC MT(MOD_LSFT, KC_ESC)
 #define MEH_Y MEH_T(KC_Y) // Tap: Z on German Windows; hold: Ctrl+Shift+Alt.
+
+// Bei einem Roll Shift sofort aktivieren, sobald die nächste Taste gedrückt wird.
+// Alle anderen Tap-Hold-Tasten behalten die normale Entscheidung bei.
+bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
+  return keycode == SHIFT_ESC;
+}
 
 const uint16_t PROGMEM xc_leader_combo[] = { KC_X, KC_C, COMBO_END };
 
@@ -859,7 +866,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT_split_3x6_3(
         HYPR_TAB,                KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                  KC_J,           KC_L,        KC_U,        KC_Z,        KC_RBRC,     KC_NUHS,
-        MT(MOD_LSFT, KC_ESC),    KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                  KC_M,           KC_N,        KC_E,        KC_I,        KC_O,        KC_RSFT,
+        SHIFT_ESC,              KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                  KC_M,           KC_N,        KC_E,        KC_I,        KC_O,        KC_RSFT,
         KC_LCTL,                 MEH_Y,      KC_X,       KC_C,       KC_D,       KC_V,                                  KC_K,           KC_H,        KC_COMM,     KC_DOT,      KC_SLSH,     KC_NUBS,
                                          ALT_REP,    LOWER_DEL,  CTL_ENT,                   CTL_SPC,  UPPER_BSPC,     KC_RALT
     ),

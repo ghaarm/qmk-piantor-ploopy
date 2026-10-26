@@ -25,7 +25,7 @@
 
 #define TAPPING_TERM 150  // Zeit (in ms), um zwischen Tap und Hold zu unterscheiden
 // #define PERMISSIVE_HOLD  // Erlaubt das Halten von Mod-Taps auch nach Ablauf des Tapping-Terms
-// #define HOLD_ON_OTHER_KEY_PRESS
+#define HOLD_ON_OTHER_KEY_PRESS_PER_KEY
 #define COMBO_TERM 500
 #define COMBO_MUST_HOLD_MODS
 #define COMBO_HOLD_TERM 150
