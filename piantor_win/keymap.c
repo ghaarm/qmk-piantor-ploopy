@@ -114,6 +114,9 @@ bool delete_line_to_start(bool activated, void *context) {
 }
 
 static bool alt_tab_active = false;
+static bool shift_esc_pressed = false;
+static bool right_shift_pressed = false;
+static bool hypr_tab_shift_on_press = false;
 static bool ctl_ent_pressed = false;
 static bool ctl_ent_registered = false;
 static bool ctl_ent_search_sent = false;
@@ -132,6 +135,20 @@ static bool alt_rep_registered = false;
 static bool alt_rep_used = false;
 static bool alt_rep_s_suppressed = false;
 static uint16_t alt_rep_timer = 0;
+
+// HYPR_TAB is a layer-tap key: QMK may send its tap only after Shift was
+// released. Remember the physical Shift state at the Tab press instead.
+bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (keycode == SHIFT_ESC) {
+        shift_esc_pressed = record->event.pressed;
+    } else if (keycode == KC_RSFT) {
+        right_shift_pressed = record->event.pressed;
+    } else if (keycode == HYPR_TAB && record->event.pressed) {
+        hypr_tab_shift_on_press = shift_esc_pressed || right_shift_pressed ||
+                                  ((get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT);
+    }
+    return true;
+}
 
 static void register_alt_rep(void) {
     if (!alt_rep_registered) {
@@ -651,7 +668,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
         send_keyboard_report();
         ctl_ent_search_sent = true;
         register_code(KC_LALT);
-        tap_code(KC_TAB);
+        if (hypr_tab_shift_on_press || ((get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT)) {
+          tap_code16(S(KC_TAB));
+        } else {
+          tap_code(KC_TAB);
+        }
         alt_tab_active = true;
         return false;
       }
