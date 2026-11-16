@@ -1,2 +1,5 @@
 .DS_Store
 **/private.h
+
+# uf2 Datein ignorieren
+*.uf2
