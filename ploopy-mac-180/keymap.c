@@ -80,8 +80,11 @@ enum my_keycodes {
   PKC_TGL_DRAG_SCRL,
   PKC_GESTURE,
   PKC_DRAG_SCROLL,
+  PKC_DRAG_LOCK,
   PKC_ADJUST_LED_BRIGHTNESS,
-  PKC_BLINKY_DPI_CONFIG
+  PKC_BLINKY_DPI_CONFIG,
+  PKC_SCROLL_TAP_HOLD,
+  PKC_RIGHT_CLICK_BOOT
 };
 
 /* Layer names. */
@@ -193,11 +196,44 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   // Top Knob rotated Base layer with all of the mouse-related stuff for everyday use.
   // Right-handed layout – Ploopy A+ rotated 180 degrees
-  [LAYER_NAV_RIGHT_HANDED] = LAYOUT(
-      MS_BTN2, TG(LAYER_CONTROL), PKC_GESTURE, MS_BTN1,
-      MS_BTN3, MS_BTN4,
-      PKC_DRAG_SCROLL, MS_BTN5
-      ),
+  
+  //////////////////////////
+  // Beschreibung der Tasten
+  //////////////////////////
+  // MS_BTN1 = Linksklick
+  // MS_BTN2 = Rechtsklick
+  // MS_BTN3 = Mittelklick
+  // MS_BTN4 = Rückwärts
+  // MS_BTN5 = Vorwärts
+  // PKC_DRAG_LOCK = Linksklick eingerastet
+  // PKC_DRAG_SCROLL = Drag Scroll
+  
+// [LAYER_NAV_RIGHT_HANDED] = LAYOUT(
+//     MS_BTN2,          // Position 0 Taste nach rechtem Scrollrad
+//     TG(LAYER_CONTROL),// Position 1 Taste unten rechts
+//     PKC_GESTURE,      // Position 2 Taste Mitte rechts 
+//     MS_BTN1,          // Position 3 Taste Mitte links
+//
+//     MS_BTN3,          // Position 4 Taste unten rechts
+//     PKC_DRAG_LOCK,    // Position 5 Taste unter linkem Scrollrad
+//
+//     PKC_DRAG_SCROLL,  // Position 6 Scrollrad oben links
+//     MS_BTN5           // Position 7 Scrollrad oben rechts
+// ),
+
+[LAYER_NAV_RIGHT_HANDED] = LAYOUT(
+    PKC_SCROLL_TAP_HOLD, // 0: Unten rechts – halten: scrollen, tippen: Scroll Lock
+    TG(LAYER_CONTROL),   // 1: Unten Mitte rechts – Control
+    PKC_GESTURE,         // 2: Unten Mitte links – Gesture
+    PKC_DRAG_LOCK,       // 3: Unten links – Drag Lock
+
+    PKC_RIGHT_CLICK_BOOT, // 4: Oben rechts – tippen: Rechtsklick, 1 s halten: Bootloader
+    MS_BTN1,             // 5: Oben links – Linksklick
+
+    PKC_DRAG_SCROLL,     // 6: Scrollrad oben rechts – Horizontal
+    MS_BTN5              // 7: Scrollrad oben links – Vertikal
+),
+
 
 
   /////////////////////////////////////////////////////
@@ -387,8 +423,120 @@ rgblight_sethsv_noeeprom(
 /* Disable background lighting, allow RGB layer flashes. */
 rgblight_disable_noeeprom();
 }
+static bool drag_lock_active = false;
+static bool left_button_pressed = false;
+static bool scroll_lock_active = false;
+static bool scroll_button_pressed = false;
+static bool scroll_moved_during_press = false;
+static bool other_scroll_active = false;
+static uint32_t scroll_press_time = 0;
+static bool boot_button_pressed = false;
+static uint32_t boot_press_time = 0;
+
+#define SCROLL_TAP_TERM 200
+#define BOOT_HOLD_TIME 1000
+
+static void update_drag_scroll(void) {
+  is_drag_scroll = scroll_lock_active || scroll_button_pressed || other_scroll_active;
+}
+
+static void tap_right_button(void) {
+  report_mouse_t report = pointing_device_get_report();
+  report.buttons = pointing_device_handle_buttons(report.buttons, true, POINTING_DEVICE_BUTTON2);
+  pointing_device_set_report(report);
+  pointing_device_send();
+
+  report = pointing_device_get_report();
+  report.buttons = pointing_device_handle_buttons(report.buttons, false, POINTING_DEVICE_BUTTON2);
+  pointing_device_set_report(report);
+  pointing_device_send();
+}
+
+static void handle_scroll_button(bool pressed) {
+  if (pressed) {
+    scroll_press_time = timer_read32();
+    scroll_moved_during_press = false;
+    scroll_button_pressed = true;
+  } else {
+    if (scroll_button_pressed && timer_elapsed32(scroll_press_time) < SCROLL_TAP_TERM && !scroll_moved_during_press) {
+      scroll_lock_active = !scroll_lock_active;
+    }
+    scroll_button_pressed = false;
+  }
+  update_drag_scroll();
+}
+
+static void handle_boot_button(bool pressed) {
+  if (pressed) {
+    boot_press_time = timer_read32();
+    boot_button_pressed = true;
+  } else if (boot_button_pressed) {
+    boot_button_pressed = false;
+    if (timer_elapsed32(boot_press_time) >= BOOT_HOLD_TIME) {
+      reset_keyboard();
+    } else {
+      tap_right_button();
+    }
+  }
+}
+
+void matrix_scan_user(void) {
+  if (boot_button_pressed && timer_elapsed32(boot_press_time) >= BOOT_HOLD_TIME) {
+    boot_button_pressed = false;
+    reset_keyboard();
+  }
+}
+
+static void update_left_button(void) {
+  report_mouse_t report = pointing_device_get_report();
+  report.buttons = pointing_device_handle_buttons(report.buttons, drag_lock_active || left_button_pressed, POINTING_DEVICE_BUTTON1);
+  pointing_device_set_report(report);
+  pointing_device_send();
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+  /* Keep the two right-side buttons independent of a saved VIA keymap. */
+  if (record->event.key.row == 0 &&
+      (get_highest_layer(layer_state) == LAYER_NAV_RIGHT_HANDED ||
+       scroll_button_pressed || boot_button_pressed)) {
+    if (record->event.key.col == 0) { // Upper right after 180-degree rotation.
+      handle_boot_button(record->event.pressed);
+      return false;
+    }
+    if (record->event.key.col == 1) { // Lower right after 180-degree rotation.
+      handle_scroll_button(record->event.pressed);
+      return false;
+    }
+  }
+
+  /* The outer left button is matrix (0,5) after the 180-degree rotation.
+     Handle it directly so an existing VIA keymap in EEPROM also gets drag lock. */
+  // if (record->event.key.row == 0 && record->event.key.col == 5 &&
+  //     get_highest_layer(layer_state) == LAYER_NAV_RIGHT_HANDED) {
+  //   if (record->event.pressed) {
+  //     drag_lock_active = !drag_lock_active;
+  //     update_left_button();
+  //   }
+  //   return false;
+  // }
+
   switch (keycode) {
+    case MS_BTN1:
+      left_button_pressed = record->event.pressed;
+      update_left_button();
+      return false;
+    case PKC_DRAG_LOCK:
+      if (record->event.pressed) {
+        drag_lock_active = !drag_lock_active;
+        update_left_button();
+      }
+      return false;
+    case PKC_SCROLL_TAP_HOLD:
+      handle_scroll_button(record->event.pressed);
+      return false;
+    case PKC_RIGHT_CLICK_BOOT:
+      handle_boot_button(record->event.pressed);
+      return false;
     case PKC_TGL_MIRROR:
       if (record->event.pressed) {
         /* Toggle handed-ness, record new state to EEPROM. */
@@ -480,13 +628,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     case PKC_DRAG_SCROLL:
       if( user_config.drag_scroll_mode ) {
         if (record->event.pressed) {
-          toggle_drag_scroll();
+          other_scroll_active = !other_scroll_active;
         }
       }
       /* Press and hold mode. */
       else {
-        is_drag_scroll = record->event.pressed;
+        other_scroll_active = record->event.pressed;
       }
+      update_drag_scroll();
       return true;
     case PKC_ADJUST_LED_BRIGHTNESS:
       /* Increase brightness in RGBLIGHT_VAL_STEP steps. 
@@ -535,6 +684,9 @@ uint32_t leftwheel_timeout = 0;
 uint32_t rightwheel_timeout = 0;
 
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+  if (scroll_button_pressed && (mouse_report.x || mouse_report.y)) {
+    scroll_moved_during_press = true;
+  }
   // throttle reads
   if (timer_elapsed32(last_scroll_time) > 10) {
     uint16_t leftwheel_rawangle = tmag5273_get_angle(TMAG5273_D0_I2C_ADDRESS);
@@ -616,7 +768,12 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         tap_code(KC_VOLD);
         rightwheel_volume_scroll_tick = 0;
       }
-
+// Keep left mouse button pressed while Drag Lock is active.
+mouse_report.buttons = pointing_device_handle_buttons(
+    mouse_report.buttons,
+    drag_lock_active || left_button_pressed,
+    POINTING_DEVICE_BUTTON1
+);
       /* Return early -- no other scrolling activity happens in the
          control layer. */
       return mouse_report;
@@ -643,16 +800,16 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         leftwheel_delta = 0;
       }
       else {
-        if( rightwheel_arrow_scroll_tick > TMAG5273_HORIZ_SCROLL_TICK_SIZE ) {
+        if( leftwheel_arrow_scroll_tick > TMAG5273_HORIZ_SCROLL_TICK_SIZE ) {
           tap_code(KC_RIGHT);
-          rightwheel_arrow_scroll_tick = 0;
+          leftwheel_arrow_scroll_tick = 0;
         }
-        else if( rightwheel_arrow_scroll_tick < -TMAG5273_HORIZ_SCROLL_TICK_SIZE ) {
+        else if( leftwheel_arrow_scroll_tick < -TMAG5273_HORIZ_SCROLL_TICK_SIZE ) {
           tap_code(KC_LEFT);
-          rightwheel_arrow_scroll_tick = 0;
+          leftwheel_arrow_scroll_tick = 0;
         }
         /* Set the delta to zero so we don't scroll *and* arrow at the same time. */
-        rightwheel_delta = 0;
+        leftwheel_delta = 0;
       }
     }
 
@@ -676,16 +833,16 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         rightwheel_delta = 0;
       }
       else {
-        if( leftwheel_arrow_scroll_tick > TMAG5273_VERT_SCROLL_TICK_SIZE ) {
-          tap_code(KC_DOWN);
-          leftwheel_arrow_scroll_tick = 0;
-        }
-        else if( leftwheel_arrow_scroll_tick < -TMAG5273_VERT_SCROLL_TICK_SIZE ) {
+        if( rightwheel_arrow_scroll_tick > TMAG5273_VERT_SCROLL_TICK_SIZE ) {
           tap_code(KC_UP);
-          leftwheel_arrow_scroll_tick = 0;
+          rightwheel_arrow_scroll_tick = 0;
+        }
+        else if( rightwheel_arrow_scroll_tick < -TMAG5273_VERT_SCROLL_TICK_SIZE ) {
+          tap_code(KC_DOWN);
+          rightwheel_arrow_scroll_tick = 0;
         }
         /* Set the delta to zero so we don't scroll *and* arrow at the same time. */
-        leftwheel_delta = 0;
+        rightwheel_delta = 0;
       }
     }
 
@@ -702,7 +859,9 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
 
         }
         else {
-          mouse_report.v = -leftwheel_delta / TMAG5273_VERTICAL_WHEEL_SPEED_DIV;
+          if( !user_config.horizontal_scroll_arrows ) {
+            mouse_report.h = leftwheel_delta / TMAG5273_HORIZONAL_WHEEL_SPEED_DIV;
+          }
         }
       }
       if ( rightwheel_deadzone_distance > (TMAG5273_WHEEL_DEADZONE - 10) ||
@@ -712,9 +871,7 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
           mouse_report.v = -rightwheel_delta / TMAG5273_VERTICAL_WHEEL_SPEED_DIV;
         }
         else {
-          if( !user_config.horizontal_scroll_arrows ) {
-            mouse_report.h = rightwheel_delta / TMAG5273_HORIZONAL_WHEEL_SPEED_DIV;
-          }
+          mouse_report.v = rightwheel_delta / TMAG5273_VERTICAL_WHEEL_SPEED_DIV;
         }
       }
 
@@ -753,24 +910,24 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
       }
       else {
         if( leftwheel_lowres_scroll_tick > TMAG5273_LOWRES_TICK_SIZE ) {
-          mouse_report.v = -1;
+          if( !user_config.horizontal_scroll_arrows ) {
+            mouse_report.h = 1;
+          }
           leftwheel_lowres_scroll_tick = 0;
         }
         else if( leftwheel_lowres_scroll_tick < -TMAG5273_LOWRES_TICK_SIZE ) {
-          mouse_report.v = 1;
+          if( !user_config.horizontal_scroll_arrows ) {
+            mouse_report.h = -1;
+          }
           leftwheel_lowres_scroll_tick = 0;
         }
 
         if( rightwheel_lowres_scroll_tick > TMAG5273_LOWRES_TICK_SIZE ) {
-          if( !user_config.horizontal_scroll_arrows ) {
-            mouse_report.h = 1;
-          }
+          mouse_report.v = 1;
           rightwheel_lowres_scroll_tick = 0;
         }
         else if( rightwheel_lowres_scroll_tick < -TMAG5273_LOWRES_TICK_SIZE ) {
-          if( !user_config.horizontal_scroll_arrows ) {
-            mouse_report.h = -1;
-          }
+          mouse_report.v = -1;
           rightwheel_lowres_scroll_tick = 0;
         }
       }
@@ -785,7 +942,7 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         mouse_report.h = 0;
       }
       else {
-        mouse_report.v = 0;
+        mouse_report.h = 0;
       }
     }
     /* Check right knob. */
@@ -794,7 +951,7 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         mouse_report.v = 0;
       }
       else {
-        mouse_report.h = 0;
+        mouse_report.v = 0;
       }
     }
 

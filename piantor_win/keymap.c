@@ -41,15 +41,16 @@ enum combo_events {
 
 const uint16_t PROGMEM email_combo[] = {KC_Q, KC_W, COMBO_END};
 #define HYPR_TAB LT(_HYPR, KC_TAB)
+#define HYPR_NUHS LT(_HYPR, KC_NUHS)
 #define LOWER_DEL LT(_LOWER, KC_DEL)
 #define UPPER_BSPC LT(_UPPER, KC_BSPC)
 #define SHIFT_ESC MT(MOD_LSFT, KC_ESC)
 #define MEH_Y MEH_T(KC_Y) // Tap: Z on German Windows; hold: Ctrl+Shift+Alt.
 
-// Bei einem Roll Shift sofort aktivieren, sobald die nächste Taste gedrückt wird.
+// Shift und beide HYPR-Tasten bei einem Chord sofort als Hold behandeln.
 // Alle anderen Tap-Hold-Tasten behalten die normale Entscheidung bei.
 bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
-  return keycode == SHIFT_ESC;
+  return keycode == SHIFT_ESC || keycode == HYPR_TAB || keycode == HYPR_NUHS;
 }
 
 const uint16_t PROGMEM xc_leader_combo[] = { KC_X, KC_C, COMBO_END };
@@ -886,7 +887,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT_split_3x6_3(
-        HYPR_TAB,                KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                  KC_J,           KC_L,        KC_U,        KC_Z,        KC_RBRC,     KC_NUHS,
+        HYPR_TAB,                KC_Q,       KC_W,       KC_F,       KC_P,       KC_B,                                  KC_J,           KC_L,        KC_U,        KC_Z,        KC_RBRC,     HYPR_NUHS,
         SHIFT_ESC,              KC_A,       KC_R,       KC_S,       KC_T,       KC_G,                                  KC_M,           KC_N,        KC_E,        KC_I,        KC_O,        KC_RSFT,
         KC_LCTL,                 MEH_Y,      KC_X,       KC_C,       KC_D,       KC_V,                                  KC_K,           KC_H,        KC_COMM,     KC_DOT,      KC_SLSH,     KC_NUBS,
                                          ALT_REP,    LOWER_DEL,  CTL_ENT,                   CTL_SPC,  UPPER_BSPC,     KC_RALT
@@ -907,7 +908,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                         _______,    _______,    _______,                    _______,  _______,    _______
     ),
     [_HYPR] = LAYOUT_split_3x6_3(
-        KC_NO,      KC_NO,      KC_NO,      MS_WHLU,      MS_WHLD,      QK_BOOT,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
+        KC_NO,      LGUI(KC_2), KC_NO,      MS_WHLU,      MS_WHLD,  LGUI(KC_1),                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,     KC_NO,      KC_NO,
         _______,    KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,                                            KC_NO,      KC_NO,      KC_NO,      KC_NO,      KC_SCLN,    QK_BOOT,
         QK_BOOT,    KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,                                           KC_NO,      KC_MPRV,    KC_VOLD,    KC_VOLU,    KC_MNXT,    KC_MPLY,
                                _______,    LCTL(LALT(KC_DEL)),    KC_SPACE,                    _______,  _______,    _______
